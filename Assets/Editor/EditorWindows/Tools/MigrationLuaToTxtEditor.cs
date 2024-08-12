@@ -6,33 +6,29 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public class LuaCopyToTxtEditor : EditorWindow
+public class MigrationLuaToTxtEditor : EditorWindow
 {
-    [MenuItem("Tools/Lua CopyTo Txt")]
+    [MenuItem("Tools/MigrationLuaToTxt")]
     static void OpenWindow()
     {
-        LuaCopyToTxtEditor window = (LuaCopyToTxtEditor)EditorWindow.GetWindow(typeof(LuaCopyToTxtEditor));
+        MigrationLuaToTxtEditor window = (MigrationLuaToTxtEditor)EditorWindow.GetWindow(typeof(MigrationLuaToTxtEditor));
+        window.minSize = new Vector2(800, 500);
         window.Show();
     }
 
     private void Awake()
     {
-        _isCleanOldFile = PlayerPrefs.GetInt(GetPrefsKey("IsCleanOldFile"), 0) > 0;
-        _srcPath = PlayerPrefs.GetString(GetPrefsKey("SrcPath"));
-        _dstPath = PlayerPrefs.GetString(GetPrefsKey("DstPath"));
-        _bundleName = PlayerPrefs.GetString(GetPrefsKey("BundleName"));
+        _isCleanOldFile = EditorPrefs.GetInt(GetPrefsKey("IsCleanOldFile"), 0) > 0;
+        _srcPath = EditorPrefs.GetString(GetPrefsKey("SrcPath"));
+        _dstPath = EditorPrefs.GetString(GetPrefsKey("DstPath"));
+        _bundleName = EditorPrefs.GetString(GetPrefsKey("BundleName"));
         
         UpdateAssetList();
     }
 
-    private void OnEnable()
-    {
-        minSize = new Vector2(800, 500);
-    }
-
     private string GetPrefsKey(string str)
     {
-        return nameof(LuaCopyToTxtEditor) + "_" + str;
+        return nameof(MigrationLuaToTxtEditor) + "_" + str;
     }
 
     private bool _isCleanOldFile;
@@ -44,7 +40,7 @@ public class LuaCopyToTxtEditor : EditorWindow
             if (value != _isCleanOldFile)
             {
                 _isCleanOldFile = value;
-                PlayerPrefs.SetInt(GetPrefsKey("IsCleanOldFile"), Convert.ToInt32(isCleanOldFile));
+                EditorPrefs.SetInt(GetPrefsKey("IsCleanOldFile"), Convert.ToInt32(isCleanOldFile));
             }
         }
     }
@@ -59,7 +55,7 @@ public class LuaCopyToTxtEditor : EditorWindow
             if (value != _srcPath)
             {
                 _srcPath = value;
-                PlayerPrefs.SetString(GetPrefsKey("SrcPath"), srcPath);
+                EditorPrefs.SetString(GetPrefsKey("SrcPath"), srcPath);
                 UpdateAssetList();
             }
         }
@@ -90,7 +86,7 @@ public class LuaCopyToTxtEditor : EditorWindow
             if (value != _dstPath)
             {
                 _dstPath = value;
-                PlayerPrefs.SetString(GetPrefsKey("DstPath"), dstPath);
+                EditorPrefs.SetString(GetPrefsKey("DstPath"), dstPath);
             }
         }
     }
@@ -105,19 +101,22 @@ public class LuaCopyToTxtEditor : EditorWindow
             if (value != _bundleName)
             {
                 _bundleName = value;
-                PlayerPrefs.SetString(GetPrefsKey("BundleName"), _bundleName);
+                EditorPrefs.SetString(GetPrefsKey("BundleName"), _bundleName);
             }
         }
     }
 
-    private List<string> dstUrls = new List<string>();
-    private List<string> dstSelected = new List<string>();
+    private List<string> dstUrls;
+    private List<string> dstSelected;
+    private readonly float blockSpace = 10f;
     private void OnGUI()
     {
+        EditorGUILayout.Space(blockSpace);
+        
         GUILayout.Label("Input Bundle Name");
         bundleName = EditorGUILayout.TextField("BundleName:", bundleName);
-        EditorGUILayout.Space(10);
         
+        EditorGUILayout.Space(blockSpace);
         GUILayout.Label("Select Lua Scripts Root Directory");
         GUILayout.BeginHorizontal();
         {
@@ -125,39 +124,36 @@ public class LuaCopyToTxtEditor : EditorWindow
             if (GUILayout.Button("Browse", GUILayout.Width(60f)))
             {
                 srcPath = EditorUtility.OpenFolderPanel("Open Lua Scripts Root Directory", Application.dataPath, String.Empty);
-                // Debug.Log(srcPath);
             }
         }
         GUILayout.EndHorizontal();
-        EditorGUILayout.Space(10);
         
-        GUILayout.Label("Select CopyTo Destination Directory");
+        EditorGUILayout.Space(blockSpace);
+        GUILayout.Label("Select Migration Destination Directory");
         GUILayout.BeginHorizontal();
         {
             dstPath = EditorGUILayout.TextField("DestinationPath:", dstPath);
 
             if (GUILayout.Button("Browse", GUILayout.Width(60f)))
             {
-                dstPath = EditorUtility.OpenFolderPanel("Open Lua Scripts CopyTo Destination Directory", Application.dataPath, String.Empty);
-                // Debug.Log(dstPath);
+                dstPath = EditorUtility.OpenFolderPanel("Open Lua Scripts Migration Destination Directory", Application.dataPath, String.Empty);
             }
         }
         GUILayout.EndHorizontal();
-        EditorGUILayout.Space(10);
         
-        EditorGUILayout.Space(10);
+        EditorGUILayout.Space(blockSpace * 2);
         // 渲染列表
         OnGUIFileList(dstUrls);
-        EditorGUILayout.Space(10);
 
+        EditorGUILayout.Space(blockSpace);
         EditorGUILayout.BeginHorizontal();
         {
             GUILayout.FlexibleSpace();
             isCleanOldFile = EditorGUILayout.Toggle("ClearOldTxtAssets", isCleanOldFile, GUILayout.Width(180));
         }
         EditorGUILayout.EndHorizontal();
-        EditorGUILayout.Space(10);
 
+        EditorGUILayout.Space(blockSpace);
         EditorGUILayout.BeginHorizontal();
         {
             GUILayout.FlexibleSpace();
@@ -167,7 +163,8 @@ public class LuaCopyToTxtEditor : EditorWindow
             }
         }
         EditorGUILayout.EndHorizontal();
-        EditorGUILayout.Space(30);
+        
+        EditorGUILayout.Space(blockSpace * 3);
     }
 
     void Executor(string srcPath, string dstPath, string bundleName)
@@ -239,6 +236,10 @@ public class LuaCopyToTxtEditor : EditorWindow
 
     private const int MinListRow = 5;
     private Vector2 _scrollPosition;
+    /// <summary>
+    /// 渲染文件列表
+    /// </summary>
+    /// <param name="files"></param>
     void OnGUIFileList(List<string> files)
     {
         EditorGUILayout.BeginHorizontal(CustomGUIStyles.TableOddRowStyle);
@@ -262,7 +263,7 @@ public class LuaCopyToTxtEditor : EditorWindow
 
                 EditorGUILayout.BeginHorizontal(lineStyle, GUILayout.Height(rowHeight));
                 {
-                    // 判断是否在时图内， 如果不在直接渲染空行
+                    // 判断是否在视图内， 如果不在直接渲染空行
                     int posY = i * rowHeight;
                     bool isInView = (posY > _scrollPosition.y - 60) && posY < _scrollPosition.y + position.height;
                     if (isInView && files.Count > i)
