@@ -6,7 +6,7 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace EditorExtension.EditorWindows.Tools
+namespace Toolkit.EditorExtension.EditorWindows.Tools
 {
     public class ManagedStaticReferences : Editor
     {

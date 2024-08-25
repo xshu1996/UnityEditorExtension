@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace EditorExtension.Styles
+namespace Toolkit.EditorExtension.Styles
 {
     public class CustomGUIStyles
     {

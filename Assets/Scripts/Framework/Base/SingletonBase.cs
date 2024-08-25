@@ -1,6 +1,6 @@
 using System;
 
-namespace Utils
+namespace Framework.Base
 {
    public class SingletonBase<T> where T : SingletonBase<T>
    {

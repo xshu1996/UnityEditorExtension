@@ -2,7 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace EditorExtension.Template
+namespace Toolkit.EditorExtension.Template
 {
     public class EditorWindowTemplate : EditorWindow, IHasCustomMenu
     {

@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EditorExtension
+namespace Toolkit.EditorExtension
 {
     public static class MenuItemExtension
     {

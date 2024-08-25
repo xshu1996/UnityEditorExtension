@@ -2,7 +2,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace EditorExtension
+namespace Toolkit.EditorExtension
 {
     public static class ShortcutExtension
     {

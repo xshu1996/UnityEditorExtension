@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace EditorExtension.EditorBuiltin
+namespace Toolkit.EditorExtension.EditorBuiltin
 {
     public static class BuiltinAllEditorWindowType
     {

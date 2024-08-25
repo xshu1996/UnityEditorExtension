@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace GizmosHelper
+namespace Toolkit.GizmosExtension.GizmosHelper
 {
     public class RaycastGizmos : MonoBehaviour
     {

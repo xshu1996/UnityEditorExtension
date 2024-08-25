@@ -1,8 +1,9 @@
 using System;
 using System.Reflection;
+using Framework.Base;
 using UnityEngine.EventSystems;
 
-namespace Utils
+namespace Framework.Utils
 {
     /// <summary>
     /// 通过反射代理全局点击事件

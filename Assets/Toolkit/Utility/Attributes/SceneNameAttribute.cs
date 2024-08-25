@@ -2,7 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace Utility.Attributes
+namespace Toolkit.Utility.Attributes
 {
 #if UNITY_EDITOR
     [AttributeUsage(AttributeTargets.Field)]
