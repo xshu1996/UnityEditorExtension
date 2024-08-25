@@ -27,6 +27,11 @@ public class ExampleMono : MonoBehaviour
     [SerializeField, SetProperty("SceneName"), SceneName]
     private string _sceneName;
 
+    public bool isShowPro = false;
+
+    [PropertyActive("isShowPro", PropertyActiveAttribute.CompareType.Equal, true)]
+    public GameObject cube;
+
     public string SceneName
     {
         get => _sceneName;
