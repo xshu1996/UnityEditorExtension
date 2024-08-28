@@ -46,7 +46,12 @@ public class ExampleMono : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        Font.textureRebuilt += FontOntextureRebuilt;
+    }
+
+    private void FontOntextureRebuilt(Font obj)
+    {
+        Debug.Log(obj.name);
     }
 
     // Update is called once per frame

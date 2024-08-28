@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -21,11 +22,11 @@ namespace Toolkit.Editor.ReferencesSpector
         }
 
         [MenuItem("Assets/Find References Info")]
-        static void FindAssetReferencesInfo()
+        static async void FindAssetReferencesInfo()
         {
             if (!Selection.activeObject) return;
 
-            ReferenceSpectorHelper.Find(AssetDatabase.GetAssetPath(Selection.activeObject));
+            await ReferenceSpectorHelper.Find(AssetDatabase.GetAssetPath(Selection.activeObject));
         }
 
         private void OnGUI()
@@ -85,31 +86,33 @@ namespace Toolkit.Editor.ReferencesSpector
             ".unity", ".prefab", ".asset", ".mat", 
             ".shadervariants", ".fontsettings", ".cubemap", 
             ".flare", ".scenetemplate", ".mask", ".overrideController",
-            ".terrainlayer", ".guiskin"
+            ".terrainlayer", ".guiskin",
+            ".spriteatlas"
         };
 
-        public static void FindByGuid(string guid, Action<List<ReferenceInfo>> callback = null)
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            Find(path, callback);
-        }
+        // public static void FindByGuid(string guid, Action<List<ReferenceInfo>> callback = null)
+        // {
+        //     string path = AssetDatabase.GUIDToAssetPath(guid);
+        //     Find(path, callback);
+        // }
 
         /// <summary>
         /// 通过路径查找引用
         /// </summary>
         /// <param name="assetPath">资源路径, 以 Assets 开始</param>
         /// <param name="callback"></param>
-        public static void Find(string assetPath, Action<List<ReferenceInfo>> callback = null)
+        public static async Task<List<ReferenceInfo>> Find(string assetPath, Action<List<ReferenceInfo>> callback = null)
         {
-
             if (string.IsNullOrEmpty(assetPath))
             {
                 callback?.Invoke(null);
-                return;
+                return null;
             }
 
             var refList = new List<ReferenceInfo>();
             string[] files = GetProjectAllAssets();
+            
+            TaskCompletionSource<List<ReferenceInfo>> tcs = new TaskCompletionSource<List<ReferenceInfo>>();
 
             int fileCount = files.Length;
             int indicate = 0;
@@ -142,7 +145,10 @@ namespace Toolkit.Editor.ReferencesSpector
                     {
                         EditorApplication.update = null;
                         EditorUtility.ClearProgressBar();
+                        
                         callback?.Invoke(null);
+                        tcs.TrySetResult(null);
+
                         return;
                     }
 
@@ -157,7 +163,9 @@ namespace Toolkit.Editor.ReferencesSpector
                 {
                     EditorApplication.update = null;
                     EditorUtility.ClearProgressBar();
+                    
                     callback?.Invoke(refList);
+                    tcs.TrySetResult(refList);
 
                     for (int i = 0; i < refList.Count; ++i)
                     {
@@ -167,6 +175,8 @@ namespace Toolkit.Editor.ReferencesSpector
                     Debug.Log("Execute Find End");
                 }
             };
+
+            return await tcs.Task;
         }
 
         public static void FindRegex(Object asset, out List<ReferenceInfo> refList)
