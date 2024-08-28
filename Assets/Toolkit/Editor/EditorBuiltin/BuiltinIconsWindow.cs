@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace Toolkit.EditorExtension.EditorBuiltin
+namespace Toolkit.Editor.EditorBuiltin
 {
    public class BuiltinIconsWindow : EditorWindow
    {

@@ -2,14 +2,14 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Toolkit.EditorExtension
+namespace Toolkit.Editor
 {
     public static class MenuItemExtension
     {
         /// <summary>
         /// 创建默认取消勾选 Raycast 的 Image
         /// </summary>
-        [MenuItem("GameObject/UI/ImageWithoutRaycast")]
+        [MenuItem("GameObject/UI/Extension/Image - WithoutRaycast")]
         static void CreateImageWithoutRaycast()
         {
             if (Selection.activeTransform != null && 

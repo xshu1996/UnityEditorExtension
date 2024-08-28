@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Toolkit.EditorExtension.Utility
+namespace Toolkit.Editor.Utility
 {
     public static class GUIUtility
     {

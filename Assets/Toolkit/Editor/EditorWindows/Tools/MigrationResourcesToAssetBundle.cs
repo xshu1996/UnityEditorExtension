@@ -4,7 +4,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace EditorExtension.EditorWindows.Tools
+namespace Toolkit.Editor.EditorWindows.Tools
 {
     public static class MigrationResourcesToAssetBundle
     {

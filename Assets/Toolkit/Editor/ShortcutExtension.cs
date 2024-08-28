@@ -2,7 +2,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Toolkit.EditorExtension
+namespace Toolkit.Editor
 {
     public static class ShortcutExtension
     {
@@ -50,7 +50,7 @@ namespace Toolkit.EditorExtension
         [MenuItem("Tools/Shortcut/CleanConsole %L")]
         private static void CleanConsole()
         {
-            Assembly assembly = Assembly.GetAssembly(typeof(Editor));
+            Assembly assembly = Assembly.GetAssembly(typeof(UnityEditor.Editor));
             MethodInfo methodInfo = assembly.GetType("UnityEditor.LogEntries").GetMethod("Clear");
             methodInfo.Invoke(new object(), null);
         }

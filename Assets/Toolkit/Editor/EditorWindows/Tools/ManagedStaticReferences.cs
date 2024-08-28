@@ -6,9 +6,9 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace Toolkit.EditorExtension.EditorWindows.Tools
+namespace Toolkit.Editor.EditorWindows.Tools
 {
-    public class ManagedStaticReferences : Editor
+    public class ManagedStaticReferences : UnityEditor.Editor
     {
         /// <summary>
         /// 查找资源静态引用

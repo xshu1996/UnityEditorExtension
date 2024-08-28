@@ -1,7 +1,8 @@
 using UnityEditor;
 using UnityEngine;
+using GUIUtility = Toolkit.Editor.Utility.GUIUtility;
 
-namespace Toolkit.EditorExtension.Styles
+namespace Toolkit.Editor.Styles
 {
     public class CustomGUIStyles
     {
@@ -28,7 +29,7 @@ namespace Toolkit.EditorExtension.Styles
         /// </summary>
         public static readonly GUIStyle TableOddRowStyle = new GUIStyle(GUIStyle.none)
         {
-            normal = { background = Utility.GUIUtility.GenerateSingleColorTexture(new Color(0.5f, 0.5f, 0.5f, 0.2f)) },
+            normal = { background = GUIUtility.GenerateSingleColorTexture(new Color(0.5f, 0.5f, 0.5f, 0.2f)) },
         };
 
         /// <summary>
@@ -36,7 +37,7 @@ namespace Toolkit.EditorExtension.Styles
         /// </summary>
         public static readonly GUIStyle TableEvenRowStyle = new GUIStyle(GUIStyle.none)
         {
-            normal = { background = Utility.GUIUtility.GenerateSingleColorTexture(new Color(0.5f, 0.5f, 0.5f, 0.1f)) },
+            normal = { background = GUIUtility.GenerateSingleColorTexture(new Color(0.5f, 0.5f, 0.5f, 0.1f)) },
         };
         
         /// <summary>

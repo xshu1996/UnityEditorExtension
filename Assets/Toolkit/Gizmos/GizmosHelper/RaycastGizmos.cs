@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Toolkit.GizmosExtension.GizmosHelper
+namespace Toolkit.Gizmos.GizmosHelper
 {
     public class RaycastGizmos : MonoBehaviour
     {
@@ -54,10 +54,10 @@ namespace Toolkit.GizmosExtension.GizmosHelper
                     if (rect == null) continue;
 
                     rect.GetWorldCorners(corners);
-                    Gizmos.color = Color.red;
+                    UnityEngine.Gizmos.color = Color.red;
                     for (int i = 0; i < corners.Length; i++)
                     {
-                        Gizmos.DrawLine(corners[i], corners[(i + 1) % 4]);
+                        UnityEngine.Gizmos.DrawLine(corners[i], corners[(i + 1) % 4]);
                     }
                 }
             }

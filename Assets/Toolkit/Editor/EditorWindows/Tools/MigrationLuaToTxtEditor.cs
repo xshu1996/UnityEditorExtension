@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Toolkit.EditorExtension.Styles;
+using Toolkit.Editor.Styles;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Toolkit.EditorExtension.EditorWindows.Tools
+namespace Toolkit.Editor.EditorWindows.Tools
 {
     public class MigrationLuaToTxtEditor : EditorWindow
     {
