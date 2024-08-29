@@ -64,7 +64,26 @@ namespace Toolkit.Editor.ReferencesSpector.Base
         /// <param name="id"></param>
         protected override void ContextClickedItem(int id)
         {
-            SetExpanded(id, !IsExpanded(id));
+            GenericMenu menu = new GenericMenu();
+            var item = (AssetViewItem<T>)FindItem(id, rootItem);
+            menu.AddItem(new GUIContent("CopyPath"), false, () =>
+            {
+                GUIUtility.systemCopyBuffer = item.data.assetPath;
+            });
+            
+            if (item is AssetViewItem<TextureInfo> textInfo)
+            {
+                menu.AddItem(new GUIContent("PrintReferences"), false, () =>
+                {
+                    Debug.Log($"========> {textInfo.data.name} References Path: ");
+                    foreach (var refPath in textInfo.data.referencePaths)
+                    {
+                        Debug.Log(refPath);
+                    }
+                });
+            }
+            menu.ShowAsContext();
+            // SetExpanded(id, !IsExpanded(id));
         }
 
         /// <summary>

@@ -7,6 +7,7 @@ using Toolkit.Editor.ReferencesSpector.Base;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.Profiling;
 using UnityEngine.U2D;
 
@@ -56,6 +57,25 @@ namespace Toolkit.Editor.ReferencesSpector
             string base64String = Convert.ToBase64String(buffer);
             
             return base64String;
+        }
+
+        /// <summary>
+        /// 图片转base64
+        /// </summary>
+        /// <param name="texture"></param>
+        /// <returns></returns>
+        public static string ImageToBase64(Texture2D texture)
+        {
+            if (texture.isReadable)
+            {
+                byte[] data = texture.EncodeToPNG();
+                return Convert.ToBase64String(data);
+            }
+            else
+            {
+                string path = AssetDatabase.GetAssetPath(texture);
+                return ImageToBase64(path);
+            }
         }
 
         /// <summary>
@@ -185,7 +205,9 @@ namespace Toolkit.Editor.ReferencesSpector
 
         private void OnEnable()
         {
-            if (m_AssetTreeView == null) _needUpdateAssetTree = true; 
+            if (m_AssetTreeView == null) _needUpdateAssetTree = true;
+            ignorePackages = EditorPrefs.GetBool($"{nameof(ResourceSpector)}_ignorePackages", true);
+            ignorePlugins = EditorPrefs.GetBool($"{nameof(ResourceSpector)}_ignorePlugins", true);
         }
 
         private void InitGUIStyleIfNeeded()
@@ -204,6 +226,11 @@ namespace Toolkit.Editor.ReferencesSpector
             {
                 ignorePackages = EditorGUILayout.Toggle("IgnorePackages", ignorePackages);
                 ignorePlugins = EditorGUILayout.Toggle("IgnorePlugins", ignorePlugins, GUILayout.Width(180));
+                
+                EditorPrefs.SetBool($"{nameof(ResourceSpector)}_ignorePackages", ignorePackages);
+                EditorPrefs.SetBool($"{nameof(ResourceSpector)}_ignorePlugins", ignorePlugins);
+                
+                EditorGUILayout.LabelField($"TextureInfoCount: {textInfoDic.Count}");
                 
                 // 扩展
                 if (GUILayout.Button("Expand", _toolbarButtonGUIStyle))
@@ -306,6 +333,7 @@ namespace Toolkit.Editor.ReferencesSpector
                 .ToArray();
 
             // 合并重复的资源信息
+            textInfoDic.Clear();
             for (int i = 0; i < textureInfos.Length; ++i)
             {
                 var textInfo = textureInfos[i];
@@ -328,21 +356,91 @@ namespace Toolkit.Editor.ReferencesSpector
             //     var textureInfo = info.Value;
             //     Debug.Log($"name: {textureInfo.name}, refCount:{textureInfo.referenceCount} path:{textureInfo.assetPath} duplicateCount：{textureInfo.duplicateCount}");
             // }
+
+            EditorUtility.UnloadUnusedAssetsImmediate();
         }
 
         /// <summary>
-        /// TODO: 判断 SpriteAtlas 是否有重复的图片
+        /// 判断 SpriteAtlas 是否有重复的图片
         /// </summary>
-        public bool CheckDuplicateTextureInAtlas()
+        public static void CheckDuplicateTextureInAtlas(string atlasPath)
         {
-            return false;
+            // 加载图集
+            SpriteAtlas spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(atlasPath);
+        
+            // 获取图集中所有纹理的路径
+            Sprite[] sprites = new Sprite[spriteAtlas.spriteCount];
+            spriteAtlas.GetSprites(sprites);
+
+            Dictionary<string, string> duplicateMap = DictionaryPool<string, string>.Get();
+
+            foreach (var sprite in sprites)
+            {
+                var base64Str = ImageToBase64(sprite.texture);
+
+                if (!duplicateMap.ContainsKey(base64Str))
+                {
+                    duplicateMap.Add(base64Str, sprite.texture.name);
+                    continue;
+                }
+                Debug.Log($"{spriteAtlas.name} duplicate texture: ${sprite.texture.name}");
+            }
+            
+            DictionaryPool<string, string>.Release(duplicateMap);
+        }
+        
+        public static void CheckDuplicateTextureInAtlas(SpriteAtlas spriteAtlas)
+        {
+            // 获取图集中所有纹理的路径
+            Sprite[] sprites = new Sprite[spriteAtlas.spriteCount];
+            spriteAtlas.GetSprites(sprites);
+
+            Dictionary<string, string> duplicateMap = DictionaryPool<string, string>.Get();
+
+            foreach (var sprite in sprites)
+            {
+                string base64Str = ImageToBase64(sprite.texture);
+
+                if (!duplicateMap.ContainsKey(base64Str))
+                {
+                    duplicateMap.Add(base64Str, sprite.texture.name);
+                    continue;
+                }
+                
+                Debug.Log($"{spriteAtlas.name} duplicate texture: ${sprite.texture.name}");
+            }
+            
+            DictionaryPool<string, string>.Release(duplicateMap);
         }
 
         [MenuItem("Assets/Test")]
         public static void Test()
         {
-            GetSpriteAtlasDiskSize("Assets/Art/Atlas/SpriteAtlas.spriteatlas");
             if (Selection.activeObject == null) return;
+
+            if (Selection.activeObject is SpriteAtlas spriteAtlas)
+            {
+                CheckDuplicateTextureInAtlas(spriteAtlas);
+            }
+        }
+        
+        [MenuItem("Assets/CheckSpriteAtlasDuplicate", false)]
+        public static void SpriteAtlasDuplicateChecker()
+        {
+            if (Selection.activeObject == null) return;
+
+            if (Selection.activeObject is SpriteAtlas spriteAtlas)
+            {
+                CheckDuplicateTextureInAtlas(spriteAtlas);
+            }
+        }
+        
+        [MenuItem("Assets/CheckSpriteAtlasDuplicate", true)]
+        public static bool SpriteAtlasDuplicateCheckerVisible()
+        {
+            if (Selection.activeObject == null) return false;
+
+            return Selection.activeObject is SpriteAtlas;
         }
 
         /// <summary>
@@ -394,7 +492,7 @@ namespace Toolkit.Editor.ReferencesSpector
 
         private TextureInfo[] SortViewData(ESortField sortField = ESortField.Name, bool ascending = true)
         {
-            var arr =_textDic.Values.ToArray();
+            var arr = textInfoDic.Values.ToArray();
             Array.Sort(arr, Comparer<TextureInfo>.Create((a, b) =>
             {
                 int ret = 0;
@@ -413,13 +511,13 @@ namespace Toolkit.Editor.ReferencesSpector
             return arr;
         }
 
-        private void BuildTree(TextureInfo[] textureInfoDic)
+        private void BuildTree(TextureInfo[] textureInfoArr)
         {
             root.children?.Clear();
             int indicate = 1;
-            for (int i = 0; i < textureInfoDic.Length; ++i)
+            for (int i = 0; i < textureInfoArr.Length; ++i)
             {
-                var textInfo = textureInfoDic[i];
+                var textInfo = textureInfoArr[i];
                 var item = new Base.AssetViewItem<TextureInfo>()
                 {
                     id = indicate++,
@@ -441,6 +539,8 @@ namespace Toolkit.Editor.ReferencesSpector
                 
                 root.AddChild(item);
             }
+            
+            // Debug.Log(indicate + "____" + textureInfoArr.Length);
 
             if (m_AssetTreeView != null)
             {
