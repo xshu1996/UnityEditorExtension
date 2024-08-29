@@ -110,8 +110,8 @@ namespace Toolkit.Editor.EditorWindows.Tools
             }
         }
 
-        private List<string> dstUrls;
-        private List<string> dstSelected;
+        private List<string> dstUrls = new List<string>();
+        private List<string> dstSelected = new List<string>();
         private readonly float blockSpace = 10f;
 
         private void OnGUI()

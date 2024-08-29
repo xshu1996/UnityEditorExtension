@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Toolkit.Editor.ReferencesSpector.Base;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
-using UnityEngine.Pool;
 using UnityEngine.Profiling;
 using UnityEngine.U2D;
 
@@ -144,34 +145,124 @@ namespace Toolkit.Editor.ReferencesSpector
         
         #endregion
 
+        private AssetTreeView<TextureInfo> m_AssetTreeView;
+        private TreeViewState m_TreeViewState;
+        private AssetViewItem<TextureInfo> root;
+
+        private bool _needUpdateAssetTree = true;
         
-        [MenuItem("Assets/References Spector")]
+        private static bool ignorePlugins = true;
+        private static bool ignorePackages = true;
+
+        private static Dictionary<string, TextureInfo> textInfoDic = new();
+        
+        private bool _initializedGUIStyle = false;
+        private GUIStyle _toolbarGUIStyle;
+        private GUIStyle _toolbarButtonGUIStyle;
+        
+        
+        [MenuItem("Assets/References Spector %#&f")]
         static void OpenWindow()
         {
             ResourceSpector window = GetWindow<ResourceSpector>();
             window.minSize = new Vector2(800, 500);
             window.titleContent = new GUIContent() { text = nameof(ResourceSpector) };
             window.Show();
+            window.Focus();
+        }
+        
+        private void OnGUI()
+        {
+            InitGUIStyleIfNeeded();
+            DrawOptionBar();
+            UpdateAssetTree();
+
+            if (m_AssetTreeView != null)
+            {
+                m_AssetTreeView.OnGUI(new Rect(0, _toolbarGUIStyle.fixedHeight, position.width, position.height - _toolbarGUIStyle.fixedHeight));
+            }
         }
 
-        private void OnGUI()
+        private void OnEnable()
+        {
+            if (m_AssetTreeView == null) _needUpdateAssetTree = true; 
+        }
+
+        private void InitGUIStyleIfNeeded()
+        {
+            if (!_initializedGUIStyle)
+            {
+                _toolbarButtonGUIStyle = new GUIStyle("ToolbarButton");
+                _toolbarGUIStyle = new GUIStyle("Toolbar");
+                _initializedGUIStyle = true;
+            }
+        }
+
+        private void DrawOptionBar()
         {
             EditorGUILayout.BeginHorizontal();
             {
-                GUILayout.FlexibleSpace();
-                ignorePackages = EditorGUILayout.Toggle("IgnorePackages", ignorePackages, GUILayout.Width(180));
+                ignorePackages = EditorGUILayout.Toggle("IgnorePackages", ignorePackages);
                 ignorePlugins = EditorGUILayout.Toggle("IgnorePlugins", ignorePlugins, GUILayout.Width(180));
+                
+                // 扩展
+                if (GUILayout.Button("Expand", _toolbarButtonGUIStyle))
+                {
+                    if (m_AssetTreeView != null) m_AssetTreeView.ExpandAll();
+                }
+
+                // 折叠
+                if (GUILayout.Button("Collapse", _toolbarButtonGUIStyle))
+                {
+                    if (m_AssetTreeView != null) m_AssetTreeView.CollapseAll();
+                }
+                
+                if (GUILayout.Button("Execute"))
+                {
+                    Execute();
+                }
             }
             EditorGUILayout.EndHorizontal();
-            
-            if (GUILayout.Button("Execute"))
+        }
+        
+        private void UpdateAssetTree()
+        {
+            if (_needUpdateAssetTree)
             {
-                Execute();
+                if (m_AssetTreeView == null)
+                {
+                    if (m_TreeViewState == null)
+                        m_TreeViewState = new TreeViewState();
+                
+                    var headState = AssetTreeView<TextureInfo>.CreateDefaultMultiColumnHeaderState(position.width);
+                    var multiColumnHeader = new MultiColumnHeader(headState);
+                    
+                    multiColumnHeader.sortingChanged += MultiColumnHeaderOnSortingChanged;
+
+                    m_AssetTreeView = new AssetTreeView<TextureInfo>(m_TreeViewState, multiColumnHeader);
+                    root = new AssetViewItem<TextureInfo> { id = 0, depth = -1, displayName = "Assets", data = null };
+                }
+                m_AssetTreeView.assetRoot = root;
+
+                if (textInfoDic.Count > 0)
+                { 
+                    BuildTree(SortViewData());
+                }
+                 
+                m_AssetTreeView.CollapseAll();
+                m_AssetTreeView.Reload();
+                _needUpdateAssetTree = false;
             }
         }
 
-        private bool ignorePlugins = true;
-        private bool ignorePackages = true;
+        private void MultiColumnHeaderOnSortingChanged(MultiColumnHeader multicolumnheader)
+        {
+            var column = multicolumnheader.GetColumn(multicolumnheader.sortedColumnIndex);
+            
+            BuildTree(SortViewData((ESortField)multicolumnheader.sortedColumnIndex, column.sortedAscending));
+            
+            if (m_AssetTreeView != null) m_AssetTreeView.Reload();
+        }
 
         private async void Execute()
         {
@@ -214,34 +305,38 @@ namespace Toolkit.Editor.ReferencesSpector
                 .OrderBy(value => value.referenceCount, Comparer<int>.Create((x, y) => y.CompareTo(x)))
                 .ToArray();
 
-            Dictionary<string, TextureInfo> _textInfoDic = DictionaryPool<string, TextureInfo>.Get();
-
             // 合并重复的资源信息
             for (int i = 0; i < textureInfos.Length; ++i)
             {
                 var textInfo = textureInfos[i];
-                if (_textInfoDic.TryGetValue(textInfo.base64, out var info))
+                if (textInfoDic.TryGetValue(textInfo.base64, out var info))
                 {
                     info.duplicateList.Add(textInfo);
                 }
                 else
                 {
-                    _textInfoDic.Add(textInfo.base64, textInfo);
+                    textInfoDic.Add(textInfo.base64, textInfo);
                 }
             }
             
-            Debug.Log($"Total texture count: {_textInfoDic.Count}");
-            
+            Debug.Log($"Total texture count: {textInfoDic.Count}");
 
-            foreach (var info in _textInfoDic)
-            {
-                var textureInfo = info.Value;
-                Debug.Log($"name: {textureInfo.name}, refCount:{textureInfo.referenceCount} path:{textureInfo.assetPath} duplicateCount：{textureInfo.duplicateCount}");
-            }
+            BuildTree(SortViewData());
 
-            DictionaryPool<string, TextureInfo>.Release(_textInfoDic);
+            // foreach (var info in textInfoDic)
+            // {
+            //     var textureInfo = info.Value;
+            //     Debug.Log($"name: {textureInfo.name}, refCount:{textureInfo.referenceCount} path:{textureInfo.assetPath} duplicateCount：{textureInfo.duplicateCount}");
+            // }
         }
 
+        /// <summary>
+        /// TODO: 判断 SpriteAtlas 是否有重复的图片
+        /// </summary>
+        public bool CheckDuplicateTextureInAtlas()
+        {
+            return false;
+        }
 
         [MenuItem("Assets/Test")]
         public static void Test()
@@ -250,6 +345,9 @@ namespace Toolkit.Editor.ReferencesSpector
             if (Selection.activeObject == null) return;
         }
 
+        /// <summary>
+        /// KeyValuePairs<guid, TextureInfo> 
+        /// </summary>
         private static Dictionary<string, TextureInfo> _textDic = new();
         
         /// <summary>
@@ -277,17 +375,83 @@ namespace Toolkit.Editor.ReferencesSpector
                 runtimeMemorySize = GetTextureRuntimeMemorySize(texture),
                 assetPath = assetPath,
                 base64 = base64Str,
-                guid = guid,
+                Guid = guid,
             };
             
             _textDic.Add(guid, textureInfo);
 
             return textureInfo;
         }
+        
+        public enum ESortField
+        {
+            Name = 0,
+            AssetPath = 1,
+            RefCount = 2,
+            MemorySize = 3,
+            RuntimeMemorySize = 4,
+        }
 
+        private TextureInfo[] SortViewData(ESortField sortField = ESortField.Name, bool ascending = true)
+        {
+            var arr =_textDic.Values.ToArray();
+            Array.Sort(arr, Comparer<TextureInfo>.Create((a, b) =>
+            {
+                int ret = 0;
+                if (sortField == ESortField.Name)
+                    ret = String.Compare(Path.GetFileNameWithoutExtension(a.name), Path.GetFileNameWithoutExtension(b.name), StringComparison.Ordinal);
+                else if (sortField == ESortField.RefCount)
+                    ret = a.referenceCount.CompareTo(b.referenceCount);
+                else if (sortField == ESortField.MemorySize)
+                    ret = a.memorySize.CompareTo(b.memorySize);
+                else if (sortField == ESortField.RuntimeMemorySize)
+                    ret = a.runtimeMemorySize.CompareTo(b.runtimeMemorySize);
+
+                return ascending ? ret : -ret;
+            }));
+
+            return arr;
+        }
+
+        private void BuildTree(TextureInfo[] textureInfoDic)
+        {
+            root.children?.Clear();
+            int indicate = 1;
+            for (int i = 0; i < textureInfoDic.Length; ++i)
+            {
+                var textInfo = textureInfoDic[i];
+                var item = new Base.AssetViewItem<TextureInfo>()
+                {
+                    id = indicate++,
+                    depth = 0,
+                    displayName = textInfo.name,
+                    data = textInfo,
+                };
+                
+                foreach (var childInfo in textInfo.duplicateList)
+                {
+                    item.AddChild(new Base.AssetViewItem<TextureInfo>()
+                    {
+                        id = indicate++,
+                        depth = 1,
+                        displayName = childInfo.name,
+                        data = childInfo,
+                    });
+                }
+                
+                root.AddChild(item);
+            }
+
+            if (m_AssetTreeView != null)
+            {
+                m_AssetTreeView.assetRoot = root;
+                m_AssetTreeView.CollapseAll();
+                m_AssetTreeView.Reload();
+            }
+        }
     }
 
-    public class TextureInfo
+    public class TextureInfo : TreeViewItem, IAssetData
     {
         /// <summary>
         /// 图片名字
@@ -307,17 +471,17 @@ namespace Toolkit.Editor.ReferencesSpector
         /// <summary>
         /// Assets 路径
         /// </summary>
-        public string assetPath;
+        public string assetPath { get; set; }
 
         /// <summary>
         /// 硬盘文件大小
         /// </summary>
-        public long memorySize;
-        
+        public long memorySize { get; set; }
+
         /// <summary>
         /// 内存占用大小
         /// </summary>
-        public long runtimeMemorySize;
+        public long runtimeMemorySize { get; set; }
 
         /// <summary>
         /// 重复图片
@@ -331,7 +495,7 @@ namespace Toolkit.Editor.ReferencesSpector
 
         public string base64;
 
-        public string guid;
+        public string Guid { get; set; }
 
         public string formatMemoryBytes => EditorUtility.FormatBytes(memorySize);
         public string formatRuntimeMemoryBytes => EditorUtility.FormatBytes(runtimeMemorySize);
