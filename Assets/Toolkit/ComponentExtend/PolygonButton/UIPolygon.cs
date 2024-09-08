@@ -33,8 +33,11 @@ namespace Toolkit.ComponentExtend.PolygonButton
 
         public override bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
         {
-            // 需要用正交 Camera
-            return polygon.OverlapPoint(eventCamera.ScreenToWorldPoint(screenPoint));
+            Vector2 pos = eventCamera.orthographic
+                ? eventCamera.ScreenToWorldPoint(screenPoint)
+                : eventCamera.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, transform.position.z));
+
+            return polygon.OverlapPoint(pos);
         }
 
 #if UNITY_EDITOR
