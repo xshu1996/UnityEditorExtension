@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Toolkit.ComponentExtend.Particle
 {
-    [AddComponentMenu("UI/UIParticleOrder")]
+    [AddComponentMenu("UI/Custom/UIParticleOrder")]
     public class UIParticleOrder: MonoBehaviour
     {
         [SerializeField] 
