@@ -56,5 +56,36 @@ namespace Framework.Utils
 
             entry.callback.RemoveListener(listener);
         }
+
+
+        
+        public static RenderTexture CaptureCameraToRT(Camera camera, Rect rect)
+        {
+            RenderTexture rt = RenderTexturePool.Get((int)rect.width, (int)rect.height);
+            
+            camera.targetTexture = rt;
+            camera.Render();
+
+            camera.targetTexture = null;
+
+            return rt;
+        }
+
+        public static Texture2D CaptureCamera(Camera camera, Rect rect)
+        {
+            RenderTexture rt = CaptureCameraToRT(camera, rect);
+
+            // 激活 rt 从中读取像素
+            RenderTexture.active = rt;
+            Texture2D screenShot = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGB24, false);
+            screenShot.ReadPixels(rect, 0, 0);
+            screenShot.Apply();
+
+            // clear
+            RenderTexture.active = null;
+            RenderTexturePool.Recycle(rt);
+
+            return screenShot;
+        }
     }
 }
