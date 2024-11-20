@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 namespace Toolkit.ComponentExtend.PolygonButton
 {
+    [AddComponentMenu("UI/Custom/UIPolygon")]
     [RequireComponent(typeof(PolygonCollider2D))]
     public class UIPolygon : Image
     {

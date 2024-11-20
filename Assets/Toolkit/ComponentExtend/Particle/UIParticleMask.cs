@@ -5,7 +5,7 @@ namespace Toolkit.ComponentExtend.Particle
 {
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Image))]
-    [AddComponentMenu("UI/UIParticleMask")]
+    [AddComponentMenu("UI/Custom/UIParticleMask")]
     public class UIParticleMask : Mask
     {
         /// <summary>

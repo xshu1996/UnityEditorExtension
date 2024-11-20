@@ -15,4 +15,4 @@
 
 自定义资源导入类型 ``[ScriptedImporter(int version, string fileExtension)]``
 
-***注意：Scripted Importer 无法处理已由 Unity 本身处理的文件扩展名。***
+**注意：Scripted Importer 无法处理已由 Unity 本身处理的文件扩展名。**
